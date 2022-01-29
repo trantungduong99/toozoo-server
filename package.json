@@ -1,0 +1,14 @@
+{
+  "name": "serverws",
+  "version": "1.0.0",
+  "description": "ws only for toozoo",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "DuongTT",
+  "license": "ISC",
+  "dependencies": {
+    "ws": "^8.4.0"
+  }
+}
