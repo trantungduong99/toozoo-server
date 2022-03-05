@@ -1,5 +1,5 @@
 const WebSocket = require('ws')
-const https = require('http')
+const https = require('https')
 const CONNECTION_CONST = {
   CMD_DIVIDER : "&|"
 }
@@ -13,6 +13,8 @@ const CLIENT_STATUS = {
   WAIT_IN_ROOM: 2,
   PLAYING: 3
 }
+
+const serverData = 'https://toozoodata.herokuapp.com';
 
 var clientId = 0;
 
@@ -795,7 +797,7 @@ wss.on('connection', ws => {
       case CMD.LOGIN:
         {
           console.log(`USER SEND LOGIN WITH DATA => ${cmd[1]}`);
-          let url = "http://localhost:3000/getTroopData?publicAddress=0xdb4030177141884e56539231c61b759aca97129d";
+          let url = serverData + "/getTroopData?publicAddress=0xdb4030177141884e56539231c61b759aca97129d";
 
           https.get(url,(res) => {
             let body = "";
@@ -871,8 +873,7 @@ wss.on('connection', ws => {
         console.log(`USER SEND LOGIN WITH DATA => ${cmd[1]}`);
         let userName = packet["username"];
         let password = packet["password"];
-        let urlLoginGame = "http://localhost:3000/loginGame?username="+userName+"&password="+password;
-        //let url = "http://localhost:3000/getTroopData?publicAddress=0xdb4030177141884e56539231c61b759aca97129d";
+        let urlLoginGame = serverData + "/loginGame?username="+userName+"&password="+password;
 
         https.get(urlLoginGame,(res) => {
           let body = "";
