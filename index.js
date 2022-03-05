@@ -14,7 +14,9 @@ const CLIENT_STATUS = {
   PLAYING: 3
 }
 
-const serverData = 'https://toozoodata.herokuapp.com';
+const serverData = process.env.SERVER_DATA_URL || 'https://toozoodata.herokuapp.com';
+
+const PORT = process.env.PORT || 80;
 
 var clientId = 0;
 
@@ -782,7 +784,7 @@ class Room {
 
 var listToken = [];
 
-const wss = new WebSocket.Server({ port: 80 })
+const wss = new WebSocket.Server({ port: PORT })
 CLIENTS=[];
 CLIENTS_IN_LOBBY = [];
 rooms = [];
