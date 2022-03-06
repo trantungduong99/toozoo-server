@@ -30,6 +30,8 @@ const CMD = {
   TROOP_ATTACK    : 1006,
   BOTH_ATTACK   :1007,
   BATTLE_END: 1008,
+  CANCEL_PLAY: 1009,
+  PING: 1010,
 }
 
 const ROOM_STATUS = {
@@ -231,6 +233,23 @@ class Troop {
   {
     return this._damage * (2 + (this._morale) / 100);
   }
+  getDamageToElement(elementId, isCrit)
+  {
+    let damage;
+    if (isCrit == true)
+      damage = this.getDamageCrit();
+    else
+      damage = this._damage;
+    if (elementId - this._element[0] == 1 ||  elementId - this._element[0] == -4)
+    {
+      damage = damage*1.1;
+    }
+    else if (elementId - this._element[0] == -1 || elementId - this._element == 4)
+    {
+      damage = damage*0.9;
+    }
+    return damage;
+  }
   checkDodge()
   {
     return Math.floor(Math.random() * 100) < this._flexible;
@@ -256,6 +275,7 @@ class Room {
     this._previousTick;
     this._actualTicks = 0;
     this._timeChecker = 0;
+    this._timeBattle = 0;
   };
   setStatus(status)
   {
@@ -304,6 +324,8 @@ class Room {
     this._client[1].opponent = this._client[0];
     this._client[0].playerHeath = 300;
     this._client[1].playerHeath = 300;
+    this._client[0].gold = 300;
+    this._client[1].gold = 300;
     console.log("START BATTLEEEEE");
     //var troop1 = new Troop([0,0,0,0,0],0);
     this._startTime = Date.now();
@@ -312,6 +334,7 @@ class Room {
     this._client[0].queueTroop = [];
     //this._client[0].addTroop(troop1);
     this._client[1].queueTroop = [];
+    this._timeBattle = 0;
     this.gameLoop(); 
   }
 
@@ -390,6 +413,7 @@ class Room {
       {
         console.log("Remove troop of ", this._client[0].id);
         this._client[0].queueTroop.shift();
+        this._client[1].gold += 45;
       }
     }
     if (this._client[1].queueTroop[0]) {
@@ -397,6 +421,7 @@ class Room {
       {
         console.log("Remove troop of ", this._client[1].id);
         this._client[1].queueTroop.shift();
+        this._client[0].gold += 45;
       }
     }
   }
@@ -544,6 +569,7 @@ class Room {
             {
               this._attackBothData.myDamage = troop0._damage;
             }
+            this._attackBothData.myDamage = troop0.getDamageToElement(troop1._element[0], this._attackBothData.isCrit);
             this._attackBothData.isMiss = troop1.checkDodge();
             //this._attackBothData.isMiss = false;
             troop0.attack();
@@ -561,6 +587,7 @@ class Room {
             {
               this._attackBothData.enemyDamage = troop1._damage;
             }
+            this._attackBothData.enemyDamage = troop1.getDamageToElement(troop0._element[0], this._attackBothData.isEnemyCrit);
             this._attackBothData.isEnemyMiss = troop0.checkDodge();
             troop1.attack();
             if (!this._attackBothData.isEnemyMiss)
@@ -603,6 +630,7 @@ class Room {
               {
                 attackData.myDamage = troop0.getDamageCrit();
               }
+              attackData.myDamage = troop0.getDamageToElement(troop1._element[0],attackData.isCrit)
               if (!attackData.isMiss)
               {
                 troop1.getAttacked(attackData.myDamage);
@@ -629,6 +657,7 @@ class Room {
               {
                 attackData.myDamage = troop1.getDamageCrit();
               }
+              attackData.myDamage = troop1.getDamageToElement(troop0._element[0],attackData.isCrit);
               if (!attackData.isMiss)
               {
                 troop0.getAttacked(attackData.myDamage);
@@ -661,15 +690,15 @@ class Room {
 
     //update status
 
-    if (this._client[0].queueTroop[0] && this._client[0].queueTroop[0]._health <= 0)
-    {
-      this._client[0].lostTroop();
-    }
-
-    if (this._client[1].queueTroop[0] && this._client[1].queueTroop[0]._health <= 0)
-    {
-      this._client[1].lostTroop();
-    }
+    // if (this._client[0].queueTroop[0] && this._client[0].queueTroop[0]._health <= 0)
+    // {
+    //   this._client[0].lostTroop();
+    // }
+    //
+    // if (this._client[1].queueTroop[0] && this._client[1].queueTroop[0]._health <= 0)
+    // {
+    //   this._client[1].lostTroop();
+    // }
 
     for (let client of this._client)
     {
@@ -773,11 +802,46 @@ class Room {
     //check status
     if (this._timeChecker == 0)
     {
-      console.log("updateStatus: ");
+      this._timeBattle ++;
+      console.log("updateStatus: ", this._timeBattle);
       if (this._client[0].queueTroop[0])
         console.log(this._client[0].queueTroop[0]._x);
       if (this._client[1].queueTroop[0])
         console.log(this._client[1].queueTroop[0]._x);
+      this._client[0].gold += 3;
+      this._client[1].gold += 3;
+      if (this._timeBattle >= 600)
+      {
+        console.log("TIME OUT");
+        console.log(this._client[0].id + "'s HEALTH: " + this._client[0].playerHeath);
+        console.log(this._client[1].id + "'s HEALTH: " + this._client[1].playerHeath);
+        var endBattleData = {};
+        endBattleData.cmdId = CMD.BATTLE_END;
+        if (this._client[0].playerHeath < this._client[1].playerHeath)
+        {
+          console.log(this._client[1].id + " is WINNER");
+          endBattleData.battleResult = BATTLE_RESULT.LOSE;
+          this._client[0].send(JSON.stringify(endBattleData));
+          endBattleData.battleResult = BATTLE_RESULT.WIN;
+          this._client[1].send(JSON.stringify(endBattleData));
+        }
+        else if (this._client[0].playerHeath > this._client[1].playerHeath)
+        {
+          console.log(this._client[0].id + " is WINNER");
+          endBattleData.battleResult = BATTLE_RESULT.LOSE;
+          this._client[1].send(JSON.stringify(endBattleData));
+          endBattleData.battleResult = BATTLE_RESULT.WIN;
+          this._client[0].send(JSON.stringify(endBattleData));
+        }
+        else
+        {
+          console.log("BOTH LOSE!!");
+          endBattleData.battleResult = BATTLE_RESULT.LOSE;
+          this._client[0].send(JSON.stringify(endBattleData));
+          this._client[1].send(JSON.stringify(endBattleData));
+        }
+        this.finishBattle();
+      }
     }
   }
 }
@@ -789,84 +853,17 @@ CLIENTS=[];
 CLIENTS_IN_LOBBY = [];
 rooms = [];
 wss.on('connection', ws => {
+  ws.on('close', wsClose =>{
+    console.log(wsClose, " close connection");
+    if (wsClose) {
+      if (wsClose.id) {
+        console.log(wsClose.id, " close connect");
+      }
+    }
+  })
   ws.on('message', message => {
-    console.log((message.toString()));
     console.log(ws.id + `sent message => ${message}`);
     var cmd = message.toString().split(CONNECTION_CONST.CMD_DIVIDER);
-    console.log(cmd);
-    switch (Number(cmd[0]))
-    {
-      case CMD.LOGIN:
-        {
-          console.log(`USER SEND LOGIN WITH DATA => ${cmd[1]}`);
-          let url = serverData + "/getTroopData?publicAddress=0xdb4030177141884e56539231c61b759aca97129d";
-
-          https.get(url,(res) => {
-            let body = "";
-
-            res.on("data", (chunk) => {
-              body += chunk;
-              console.log(chunk);
-            });
-
-            res.on("end", () => {
-              try {
-                //let json = JSON.parse(body);
-                console.log(body);
-                // do something with JSON
-              } catch (error) {
-                console.error(error.message);
-              };
-            });
-
-          }).on("error", (error) => {
-            console.error(error.message);
-          });
-          break;
-        }
-      case CMD.REGISTER:
-        {
-          console.log(`USER SEND REGISTER WITH DATA => ${cmd[1]}`);
-          break;
-        }
-      case CMD.LOGOUT:
-        {
-          console.log(`USER LOGGED OUT => ${cmd[1]}`);
-          break;
-        }
-      case CMD.PLAY_NOW:
-      {
-        break;
-      }
-      case CMD.TRAIN:
-        {
-          console.log(`USER SEND TRAIN => ${cmd[1]}`);
-          var troopAttribute = cmd[1].split(',');
-          var random_boolean = Math.random() < 0.5;
-          var gender = random_boolean?1:0;
-          console.log("Gender: ",gender);
-          var newTroop = new Troop(troopAttribute,gender);
-          ws.addTroop(newTroop);
-          console.log(CMD.TRAIN+CONNECTION_CONST.CMD_DIVIDER+cmd[1].toString());
-          console.log(CMD.ENEMY_CREATE+CONNECTION_CONST.CMD_DIVIDER+cmd[1].toString());
-
-          var createTroopData = {};
-          createTroopData.cmdId = CMD.TRAIN;
-          createTroopData.troopData = cmd[1].toString()+","+gender.toString();
-          ws.send(JSON.stringify(createTroopData));
-
-          var enemyCreateTroopData = {}
-          enemyCreateTroopData.cmdId = CMD.ENEMY_CREATE;
-          enemyCreateTroopData.troopData = cmd[1].toString()+","+gender.toString();
-          ws.opponent.send(JSON.stringify(enemyCreateTroopData));
-          //ws.opponent.send(CMD.ENEMY_CREATE+"HELLC");
-          //ws.opponent.send(CMD.ENEMY_CREATE+CONNECTION_CONST.CMD_DIVIDER+cmd[1].toString());
-          break;
-        }
-      default:
-        console.log("No cmdId match ?");
-    }
-
     let packet = JSON.parse(message);
     switch (Number(packet["cmdId"]))
     {
@@ -882,7 +879,6 @@ wss.on('connection', ws => {
 
           res.on("data", (chunk) => {
             body += chunk;
-            console.log(chunk);
           });
 
           res.on("end", () => {
@@ -943,9 +939,16 @@ wss.on('connection', ws => {
       }
       case CMD.TRAIN:
       {
+        var cmdTrain = {};
+        cmdTrain.cmdId = CMD.TRAIN;
         console.log('USER SEND TRAIN TOKEN ID: ',packet["token_id"]);
-
-
+        if (ws.gold < 50)
+        {
+          cmdTrain.errorCode = 1; // not enoug gold
+          ws.send(JSON.stringify(cmdTrain));
+          return;
+        }
+        cmdTrain.errorCode = 0;
 
         // var troopAttribute = cmd[1].split(',');
         // var random_boolean = Math.random() < 0.5;
@@ -957,9 +960,8 @@ wss.on('connection', ws => {
         console.log("Gender: ",troopAttribute);
         var newTroop = new Troop(troopAttribute,gender);
         ws.addTroop(newTroop);
+        ws.gold -= 50;
 
-        var cmdTrain = {};
-        cmdTrain.cmdId = CMD.TRAIN;
         cmdTrain.troopAttribute = troopAttribute;
         cmdTrain.gender = gender;
         console.log(JSON.stringify(cmdTrain));
@@ -979,6 +981,38 @@ wss.on('connection', ws => {
         // ws.opponent.send(JSON.stringify(enemyCreateTroopData));
         //ws.opponent.send(CMD.ENEMY_CREATE+"HELLC");
         //ws.opponent.send(CMD.ENEMY_CREATE+CONNECTION_CONST.CMD_DIVIDER+cmd[1].toString());
+        break;
+      }
+      case CMD.CANCEL_PLAY:
+      {
+        var cmdCancel = {};
+        cmdCancel.cmdId = CMD.CANCEL_PLAY;
+        cmdCancel.errorCode  = 0;
+        for (var i = 0;i < rooms.length; i++)
+        {
+          if (rooms[i] === ws.room)
+          {
+            if (rooms[i]._status === ROOM_STATUS.WAITING)
+            {
+              rooms.splice(i, 1);
+              ws.send(JSON.stringify(cmdCancel));
+              return;
+            }
+            else
+            {
+
+            }
+          }
+        }
+        return;
+        break;
+
+      }
+      case CMD.PING:
+      {
+        var cmdPing = {};
+        cmdPing.cmdId = CMD.PING;
+        ws.send(JSON.stringify(cmdPing));
         break;
       }
       default:
