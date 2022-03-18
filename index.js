@@ -32,6 +32,7 @@ const CMD = {
   BATTLE_END: 1008,
   CANCEL_PLAY: 1009,
   PING: 1010,
+  UPDATE: 1111,
 }
 
 const ROOM_STATUS = {
@@ -89,8 +90,8 @@ const TROOP_STATUS = {
 const BASE_ATTRIBUTE = 100;
 const NUM_OF_ATTRIBUTE = 5;
 const NUM_OF_PART = 5;
-const SPACE_BETWEEN_TROOP = 100;
-const ATTACK_RANGE = 180;
+const SPACE_BETWEEN_TROOP = 80;
+const ATTACK_RANGE = 120;
 const DISTANCE_PER_SEC = 100;
 class Troop {
   _head;
@@ -287,6 +288,8 @@ class Room {
       newGame.cmdId = CMD.PLAY_NOW
       this._client[0].send(JSON.stringify(newGame));
       this._client[1].send(JSON.stringify(newGame));
+      this._client[0].status = CLIENT_STATUS.PLAYING;
+      this._client[1].status = CLIENT_STATUS.PLAYING;
     }
   }
   addClient(ws)
@@ -340,71 +343,73 @@ class Room {
 
   finishBattle()
   {
+    this._client[0].status = CLIENT_STATUS.LOBBY;
+    this._client[1].status = CLIENT_STATUS.LOBBY;
     this.gameLoop = function(){
       console.log("BATTLE HAS ENDED!!!");
     };
   }
 
-  sendCmdAttack(clientWhoTroopAttack)
-  {
-
-    for (var i = 0; i < 2; i ++)
-    {
-      var client = this._client[i];
-      var ourTroops = "";
-      for (var i = 0; i < client.queueTroop.length; i++)
-      {
-        if (client.queueTroop[i])
-        ourTroops += client.queueTroop[i]._health+"||"+client.queueTroop[i]._x;
-      }
-      var oppomentTroops = "";
-      for (var i = 0; i < client.opponent.queueTroop.length; i++)
-      {
-        oppomentTroops += client.opponent.queueTroop[i]._health + "||" + client.opponent.queueTroop[i]._x;
-      }
-      console.log(clientWhoTroopAttack.id+"'s troop attack, our HP: " +client.playerHeath+"-"+ client.opponent.playerHeath+ " update status troop: "+ourTroops+"~~"+oppomentTroops);
-      var attackData = {};
-      attackData.cmdId = CMD.TROOP_ATTACK;
-      attackData.myDamage = 50;
-      attackData.isCrit = false;
-      attackData.isMiss = false;
-      attackData.message = clientWhoTroopAttack.id+"'s troop attack, our HP: " +client.playerHeath+"-"+ client.opponent.playerHeath+ " update status troop: "+ourTroops+"~~"+oppomentTroops;
-      client.send(JSON.stringify(attackData));
-      //client.send(CMD.TROOP_ATTACK + CONNECTION_CONST.CMD_DIVIDER + clientWhoTroopAttack.id+"'s troop attack, our HP: " +client.playerHeath+"-"+ client.opponent.playerHeath+ " update status troop: "+ourTroops+"~~"+oppomentTroops);
-    }
-  }
-
-  sendCmdAttackBoth()
-  {
-    for (var i = 0; i < 2; i ++)
-    {
-      var client = this._client[i];
-      var ourTroops = "";
-      // for (var i = 0; i < client.queueTroop.length; i++)
-      // {
-      //   if (client.queueTroop[i])
-      //     ourTroops += client.queueTroop[i]._health+"||"+client.queueTroop[i]._x;
-      // }
-      // var oppomentTroops = "";
-      // for (var i = 0; i < client.opponent.queueTroop.length; i++)
-      // {
-      //   oppomentTroops += client.opponent.queueTroop[i]._health + "||" + client.opponent.queueTroop[i]._x;
-      // }
-      //console.log("Both troop attack, our HP: " +client.playerHeath+"-"+ client.opponent.playerHeath+ " update status troop: "+ourTroops+"~~"+oppomentTroops);
-      var attackData = {};
-      attackData.cmdId = CMD.BOTH_ATTACK;
-      attackData.message = "take object";
-      attackData.myDamage = 50;
-      attackData.isCrit = false;
-      attackData.isMiss = false;
-      attackData.enemyDamage = 50;
-      attackData.isEnemyCrit = false;
-      attackData.isEnemyMiss = false;
-      //attackData.message = "Both troop attack, our HP: " +client.playerHeath+"-"+ client.opponent.playerHeath+ " update status troop: "+ourTroops+"~~"+oppomentTroops;
-      client.send(JSON.stringify(attackData));
-      //client.send(CMD.TROOP_ATTACK + CONNECTION_CONST.CMD_DIVIDER + clientWhoTroopAttack.id+"'s troop attack, our HP: " +client.playerHeath+"-"+ client.opponent.playerHeath+ " update status troop: "+ourTroops+"~~"+oppomentTroops);
-    }
-  }
+  // sendCmdAttack(clientWhoTroopAttack)
+  // {
+  //
+  //   for (var i = 0; i < 2; i ++)
+  //   {
+  //     var client = this._client[i];
+  //     var ourTroops = "";
+  //     for (var i = 0; i < client.queueTroop.length; i++)
+  //     {
+  //       if (client.queueTroop[i])
+  //       ourTroops += client.queueTroop[i]._health+"||"+client.queueTroop[i]._x;
+  //     }
+  //     var oppomentTroops = "";
+  //     for (var i = 0; i < client.opponent.queueTroop.length; i++)
+  //     {
+  //       oppomentTroops += client.opponent.queueTroop[i]._health + "||" + client.opponent.queueTroop[i]._x;
+  //     }
+  //     console.log(clientWhoTroopAttack.id+"'s troop attack, our HP: " +client.playerHeath+"-"+ client.opponent.playerHeath+ " update status troop: "+ourTroops+"~~"+oppomentTroops);
+  //     var attackData = {};
+  //     attackData.cmdId = CMD.TROOP_ATTACK;
+  //     attackData.myDamage = 50;
+  //     attackData.isCrit = false;
+  //     attackData.isMiss = false;
+  //     attackData.message = clientWhoTroopAttack.id+"'s troop attack, our HP: " +client.playerHeath+"-"+ client.opponent.playerHeath+ " update status troop: "+ourTroops+"~~"+oppomentTroops;
+  //     client.send(JSON.stringify(attackData));
+  //     //client.send(CMD.TROOP_ATTACK + CONNECTION_CONST.CMD_DIVIDER + clientWhoTroopAttack.id+"'s troop attack, our HP: " +client.playerHeath+"-"+ client.opponent.playerHeath+ " update status troop: "+ourTroops+"~~"+oppomentTroops);
+  //   }
+  // }
+  //
+  // sendCmdAttackBoth()
+  // {
+  //   for (var i = 0; i < 2; i ++)
+  //   {
+  //     var client = this._client[i];
+  //     var ourTroops = "";
+  //     // for (var i = 0; i < client.queueTroop.length; i++)
+  //     // {
+  //     //   if (client.queueTroop[i])
+  //     //     ourTroops += client.queueTroop[i]._health+"||"+client.queueTroop[i]._x;
+  //     // }
+  //     // var oppomentTroops = "";
+  //     // for (var i = 0; i < client.opponent.queueTroop.length; i++)
+  //     // {
+  //     //   oppomentTroops += client.opponent.queueTroop[i]._health + "||" + client.opponent.queueTroop[i]._x;
+  //     // }
+  //     //console.log("Both troop attack, our HP: " +client.playerHeath+"-"+ client.opponent.playerHeath+ " update status troop: "+ourTroops+"~~"+oppomentTroops);
+  //     var attackData = {};
+  //     attackData.cmdId = CMD.BOTH_ATTACK;
+  //     attackData.message = "take object";
+  //     attackData.myDamage = 50;
+  //     attackData.isCrit = false;
+  //     attackData.isMiss = false;
+  //     attackData.enemyDamage = 50;
+  //     attackData.isEnemyCrit = false;
+  //     attackData.isEnemyMiss = false;
+  //     //attackData.message = "Both troop attack, our HP: " +client.playerHeath+"-"+ client.opponent.playerHeath+ " update status troop: "+ourTroops+"~~"+oppomentTroops;
+  //     client.send(JSON.stringify(attackData));
+  //     //client.send(CMD.TROOP_ATTACK + CONNECTION_CONST.CMD_DIVIDER + clientWhoTroopAttack.id+"'s troop attack, our HP: " +client.playerHeath+"-"+ client.opponent.playerHeath+ " update status troop: "+ourTroops+"~~"+oppomentTroops);
+  //   }
+  // }
 
   checkRemoveDeadTroop()
   {
@@ -810,6 +815,53 @@ class Room {
         console.log(this._client[1].queueTroop[0]._x);
       this._client[0].gold += 3;
       this._client[1].gold += 3;
+      if (this._timeBattle % 3 == 0) {
+        var updateData = {};
+        updateData.cmdId = CMD.UPDATE;
+        var data = {};
+        data.playerHeath = this._client[0].playerHeath;
+        var listTroop = [];
+        var troopData = [];
+        for (var i = 0; i < this._client[0].queueTroop.length; ++i) {
+          listTroop.push(this._client[0].queueTroop[i]._x);
+          var attribute = [];
+          for (var element of this._client[0].queueTroop[i]._element)
+            attribute.push(element)
+          attribute.push(this._client[0].queueTroop[i]._gender)
+          troopData.push(attribute);
+          if (i === 0)
+            data.firstTroopHeal = this._client[0].queueTroop[i]._health;
+        }
+        data.listTroop = listTroop;
+        data.troopData = troopData;
+        var data2 = {};
+        data2.playerHeath = this._client[1].playerHeath;
+        listTroop = [];
+        troopData = [];
+        for (var i = 0; i < this._client[1].queueTroop.length; ++i) {
+          listTroop.push(this._client[1].queueTroop[i]._x);
+          attribute = [];
+          for (var element of this._client[1].queueTroop[i]._element)
+            attribute.push(element);
+          attribute.push(this._client[1].queueTroop[i]._gender)
+          troopData.push(attribute);
+          if (i === 0)
+            data2.firstTroopHeal = this._client[1].queueTroop[i]._health;
+        }
+        data2.listTroop = listTroop;
+        data2.troopData = troopData;
+        updateData.errorCode = 0;
+        updateData.myData = data;
+        updateData.enemyData = data2;
+
+        this._client[0].send(JSON.stringify(updateData));
+
+        updateData.myData = data2;
+        updateData.enemyData = data;
+
+        this._client[1].send(JSON.stringify(updateData));
+
+      }
       if (this._timeBattle >= 600)
       {
         console.log("TIME OUT");
@@ -890,6 +942,63 @@ wss.on('connection', ws => {
                 let tokenData = json["assets"][a];
                 listToken[tokenData["token_id"]] = tokenData;
               }
+              console.log(JSON.stringify(json));
+              json.isReconnect = false;
+              json.isDup = false;
+              if (json.errorCode == 0)
+              {
+                //ws.status = CLIENT_STATUS.LOBBY;
+                ws.publicAddress = json.publicAddress;
+                var index = -1;
+                for (var client of CLIENTS) {
+                  index++;
+                  console.log("Client address: ", client.publicAddress);
+                  if (client.publicAddress == ws.publicAddress) {
+                    console.log("RELOGINN");
+                    var cmdDup = {};
+                    cmdDup.cmdId = 1112;
+                    cmdDup.message = "";
+                    cmdDup.errorCode = 0;
+                    if (client.status == CLIENT_STATUS.PLAYING)
+                    {
+                      console.log("RECONNECTTTTTTTTTTTT");
+                      json.isReconnect = true;
+                      var target;
+                      if (client.room._client[0].publicAddress == ws.publicAddress) {
+                        target = client.room._client[0];
+                      } else {
+                        target = client.room._client[1];
+                      }
+
+                      ws.room = target.room;
+                      ws.queueTroop = target.queueTroop;
+                      ws.playerHeath = target.playerHeath;
+                      ws.gold = target.gold;
+                      ws.id = target.id;
+                      ws.opponent = target.opponent;
+                      console.log("OKE assign");
+                      if (client.room._client[0].publicAddress == ws.publicAddress) {
+                        client.room._client[0] = ws;
+                        client.room._client[1].opponent = ws;
+                      } else {
+                        client.room._client[1] = ws;
+                        client.room._client[0].opponent = ws;
+                      }
+                      json.timeBattle = ws.room._timeBattle;
+                      json.gold = ws.gold;
+                      json.playerHeath
+                      //ws.send(JSON.stringify(json));
+                    }
+                    ws.send(JSON.stringify(json));
+                    client.send(JSON.stringify(cmdDup));
+                    CLIENTS.splice(index,1);
+                    CLIENTS.push(ws);
+                    return;
+                  }
+                }
+                ws.status = CLIENT_STATUS.LOBBY;
+                CLIENTS.push(ws);
+              }
               ws.send(JSON.stringify(json));
               // do something with JSON
             } catch (error) {
@@ -922,7 +1031,7 @@ wss.on('connection', ws => {
           if (rooms[i]._status === ROOM_STATUS.WAITING)
           {
             ws.room = rooms[i];
-            ws.status = CLIENT_STATUS.PLAY_NOW
+            ws.status = CLIENT_STATUS.PLAYING;
             rooms[i].addClient(ws);
             rooms[i].setStatus(ROOM_STATUS.PLAYING);
             return;
