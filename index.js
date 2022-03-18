@@ -813,8 +813,8 @@ class Room {
         console.log(this._client[0].queueTroop[0]._x);
       if (this._client[1].queueTroop[0])
         console.log(this._client[1].queueTroop[0]._x);
-      this._client[0].gold += 3;
-      this._client[1].gold += 3;
+      this._client[0].gold += 1;
+      this._client[1].gold += 1;
       if (this._timeBattle % 3 == 0) {
         var updateData = {};
         updateData.cmdId = CMD.UPDATE;
